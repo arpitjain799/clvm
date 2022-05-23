@@ -26,7 +26,7 @@ BACK_REFERENCE = 0xFE
 CONS_BOX_MARKER = 0xFF
 
 
-def sexp_to_byte_iterator(sexp, /, allow_backrefs=False) -> Iterator[bytes]:
+def sexp_to_byte_iterator(sexp, *, allow_backrefs=False) -> Iterator[bytes]:
     if allow_backrefs:
         yield from sexp_to_byte_iterator_with_backrefs(sexp)
         return
@@ -125,7 +125,7 @@ def atom_to_byte_iterator(as_atom):
     yield as_atom
 
 
-def sexp_to_stream(sexp, f, /, allow_backrefs=False):
+def sexp_to_stream(sexp, f, *, allow_backrefs=False):
     for b in sexp_to_byte_iterator(sexp, allow_backrefs=allow_backrefs):
         f.write(b)
 
@@ -206,7 +206,7 @@ def _op_read_sexp_allow_backrefs(op_stack, val_stack, f, to_sexp):
     return to_sexp((_atom_from_stream(f, b, to_sexp), val_stack))
 
 
-def sexp_from_stream(f, to_sexp, /, allow_backrefs=False):
+def sexp_from_stream(f, to_sexp, *, allow_backrefs=False):
     op_stack = [_op_read_sexp_allow_backrefs if allow_backrefs else _op_read_sexp]
     val_stack = to_sexp(b"")
 

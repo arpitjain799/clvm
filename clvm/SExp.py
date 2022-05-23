@@ -167,7 +167,7 @@ class SExp:
     def as_int(self):
         return int_from_bytes(self.atom)
 
-    def as_bin(self, /, allow_backrefs=False):
+    def as_bin(self, *, allow_backrefs=False):
         f = io.BytesIO()
         sexp_to_stream(self, f, allow_backrefs=allow_backrefs)
         return f.getvalue()
