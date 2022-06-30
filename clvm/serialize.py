@@ -45,7 +45,12 @@ def sexp_to_byte_iterator(sexp, *, allow_backrefs=False) -> Iterator[bytes]:
 
 def sexp_to_byte_iterator_with_backrefs(sexp) -> Iterator[bytes]:
 
+    # in `read_op_stack`:
+    #  "P" = "push"
+    #  "C" = "pop two objects, create and push a new cons with them"
+
     read_op_stack = ["P"]
+
     write_stack = [sexp]
 
     read_cache_lookup = ReadCacheLookup()
@@ -130,40 +135,18 @@ def sexp_to_stream(sexp, f, *, allow_backrefs=False):
         f.write(b)
 
 
-def msb_mask(byte):
-    byte |= byte >> 1
-    byte |= byte >> 2
-    byte |= byte >> 4
-    return (byte + 1) >> 1
-
-
-def traverse_path(val_stack, path: bytes, to_sexp):
-    b = path
-    env = val_stack
-
-    end_byte_cursor = 0
-    while end_byte_cursor < len(b) and b[end_byte_cursor] == 0:
-        end_byte_cursor += 1
-
-    if end_byte_cursor == len(b):
+def traverse_path(obj, path: bytes, to_sexp):
+    path_as_int = int.from_bytes(path, "big")
+    if path_as_int == 0:
         return to_sexp(b"")
 
-    # create a bitmask for the most significant *set* bit
-    # in the last non-zero byte
-    end_bitmask = msb_mask(b[end_byte_cursor])
+    while path_as_int > 1:
+        if obj.pair is None:
+            raise ValueError("path into atom", obj)
+        obj = obj.pair[path_as_int & 1]
+        path_as_int >>= 1
 
-    byte_cursor = len(b) - 1
-    bitmask = 0x01
-
-    while byte_cursor > end_byte_cursor or bitmask < end_bitmask:
-        if env.pair is None:
-            raise ValueError("path into atom", env)
-        env = env.pair[1 if b[byte_cursor] & bitmask else 0]
-        bitmask <<= 1
-        if bitmask == 0x100:
-            byte_cursor -= 1
-            bitmask = 0x01
-    return env
+    return to_sexp(obj)
 
 
 def _op_cons(op_stack, val_stack, f, to_sexp):
